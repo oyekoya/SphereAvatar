@@ -1,0 +1,255 @@
+/*
+ *      glutAvatar.cpp
+ *
+ *      William Steptoe <w.steptoe@cs.ucl.ac.uk>
+ *		University College London
+ *		
+ *		BEAMING project, 2010
+ */
+
+#include <windows.h>
+#include <GL/glut.h>
+#include <iostream>
+#include <stdio.h>
+//#include <opencv/cv.h>
+//#include <opencv/highgui.h>
+//using namespace cv;
+#include "client.h"
+#include <math.h>
+
+#define DEGTORAD (3.141596/180)
+#define RADTODEG (180/3.141596)
+
+typedef int (__cdecl*HALCA_INITCAL3D)(char*);
+typedef int (__cdecl*HALCA_ADDCHARACTER)(char*, char*);
+typedef void (__cdecl*HALCA_SETTRANSFORMTYPE)(int);
+typedef void (__cdecl*HALCA_DRAW)(float);
+typedef void (__cdecl*HALCA_IDLE)();
+typedef void (__cdecl*HALCA_EXEACT)(int ,int , float , float , float , int );
+typedef int  (__cdecl*HALCA_INITHALCA)(char*);
+typedef void (__cdecl*HALCA_SETROTATION)(int,int,float*);
+
+HALCA_INITCAL3D halca_initCal3D;
+HALCA_ADDCHARACTER halca_addCharacter;
+HALCA_SETTRANSFORMTYPE halca_setTransformType;
+HALCA_DRAW halca_draw;
+HALCA_IDLE halca_idle;
+HALCA_EXEACT halca_exeAct;
+HALCA_INITHALCA halca_initHALCA;
+HALCA_SETROTATION halca_setRotation;
+
+int width, height;
+int tsize=45;
+int gluthandl;
+int id;
+void * frm = malloc(512*512*3);
+
+
+void
+vcopy(const float *v1, float *v2)
+{
+    register int i;
+    for (i = 0 ; i < 3 ; i++)
+        v2[i] = v1[i];
+}
+
+void
+vscale(float *v, float div)
+{
+    v[0] *= div;
+    v[1] *= div;
+    v[2] *= div;
+}
+
+float
+vlength(const float *v)
+{
+    return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+}
+
+void
+vnormal(float *v)
+{
+    vscale(v,1.0/vlength(v));
+}
+
+/*
+ *  Given an axis and angle, compute quaternion.
+ */
+void
+axis_to_quat(float a[3], float phi, float q[4])
+{
+    vnormal(a);
+    vcopy(a,q);
+    vscale(q,sin(phi/2.0));
+    q[3] = cos(phi/2.0);
+}
+
+void reshape(int w, int h)
+{
+	width = w; height = h;
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+	gluPerspective(22.5,(float)w/h,0.1,100.0);
+	glMatrixMode(GL_MODELVIEW);
+}
+
+
+void mouse(int button, int state, int x, int y)
+{
+  static float a = 0.f, b = 0.f, c = 0.f;
+  if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
+	  //glTranslatef(0,0,c++);
+  } else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+	  //glTranslatef(0,0,c--);
+		printf("%i, %i \n",x,y);
+  } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_UP) {
+	  //glTranslatef(0,b++,0);
+  } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+	  //glTranslatef(0,b--,0);
+  } else if (button == GLUT_MIDDLE_BUTTON && state == GLUT_UP) {
+	  //glTranslatef(a++,0,0);
+  } else if (button == GLUT_MIDDLE_BUTTON && state == GLUT_DOWN) {
+	  //glTranslatef(a--,0,0);
+  }
+}
+
+void initHALCA(){
+		HINSTANCE hLib=LoadLibrary(L"HALCAWin32.dll");
+		halca_initHALCA=(HALCA_INITHALCA)GetProcAddress(hLib,"initHALCA");
+		//halca_initCal3D=(HALCA_INITCAL3D)GetProcAddress(hLib,"initCal3D");
+		halca_addCharacter=(HALCA_ADDCHARACTER)GetProcAddress(hLib,"addCharacter");
+		halca_setTransformType=(HALCA_SETTRANSFORMTYPE)GetProcAddress(hLib,"setTransformType");
+		halca_draw=(HALCA_DRAW)GetProcAddress(hLib,"Draw");
+		halca_exeAct=(HALCA_EXEACT)GetProcAddress(hLib,"exeAct");
+		halca_setRotation=(HALCA_SETROTATION)GetProcAddress(hLib,"setRotation");
+		
+		// !!!!!!!!!! set path to parent of directory containing avatar data !!!!!!!!!!!!
+//		halca_initHALCA("C:/Users/anthony/Desktop/beaming-svn/netManager/sampleXVRclient/");
+		halca_initHALCA("C:/wole/Beaming/netManager/sampleXVRclient/");
+		
+		halca_idle=(HALCA_IDLE)GetProcAddress(hLib,"Idle");
+		//halca_initCal3D("C:/work/BEAMING/svn/trunk/WP2/wsteptoe/avatarGUI/data/data/");
+		halca_setTransformType(0);
+		id = halca_addCharacter("m016","m016.cfg");
+		halca_idle();
+}
+
+void display(void){
+
+	static int z = 0;
+	static char iddata[128];
+	static char type[128];
+	static char name[128];
+	static char my_avatar[128];
+	float avatar_info[800];
+	int c = 10; //eye node is 10 for CMan0023
+	float arr[3]; 
+	float phi = 0;//=DEGTORAD*25.f;
+	float q[4];
+	//arr[0]=0;arr[1]=0;arr[2]=1;
+
+	if (z==0)
+	{	//get the first full connecting avatar only
+		strcpy(name,"");
+		strcpy(type,"");
+		strcpy(iddata,"");
+		strcpy(my_avatar,"");
+		z = checkStatus(iddata,type,name,my_avatar);
+		if (z>0)
+			printf("new id=%s type=%s name=%s avatar=%s\n",iddata,type,name,my_avatar);
+	}
+	//printf("%i\t",z);
+	//printf("new id=%s type=%s name=%s avatar=%s\n",iddata,type,name,my_avatar);
+
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_LIGHTING);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(0.0,0.8,0.5,0.0,0.8,0.0,0,1,0);
+	if ((z>0) && (fetch(iddata,avatar_info)>0))
+	{
+		printf("%.3f, %.3f, %.3f, %.3f\n",avatar_info[7+(c*8)],avatar_info[4+(c*8)],avatar_info[5+(c*8)],avatar_info[6+(c*8)]);
+		arr[0]=avatar_info[4+(c*8)]; arr[1]=avatar_info[5+(c*8)]; arr[2]=avatar_info[6+(c*8)];
+		axis_to_quat(arr,avatar_info[7+(c*8)],q);
+		halca_setRotation(id,9,q);
+		halca_setRotation(id,11,q);
+	}
+	glBegin(GL_LINES);
+		glColor3f(1,0,0);
+		glVertex3f(0,0,0);
+		glVertex3f(1,0,0);
+
+		glColor3f(0,1,0);
+		glVertex3f(0,0,0);
+		glVertex3f(0,1,0);
+
+		glColor3f(0,0,1);
+		glVertex3f(0,0,0);
+		glVertex3f(0,0,1);
+	glEnd();
+	glFlush();
+	halca_draw(0.0);
+	glutSwapBuffers();
+	glPopAttrib();
+
+	//wole: work in progress
+	/*glReadBuffer(GL_BACK);
+	glReadPixels(0,0,512,512,GL_BGR_EXT,GL_UNSIGNED_BYTE,frm);
+	Mat img_bgr(Size(512,512),CV_8UC3,(unsigned char *)frm);
+	Mat img_bgr_flipped;
+	flip(img_bgr, img_bgr_flipped, 0);
+	namedWindow("image", CV_WINDOW_AUTOSIZE);
+	imshow("image", img_bgr_flipped);
+	waitKey(60);	*/		
+
+}
+
+void idle(void){
+	check();
+	halca_idle();
+	glutPostRedisplay();
+}
+
+void processSpecialKeys(int key, int x, int y) {
+
+	switch(key) {
+		case GLUT_KEY_F1: 
+			halca_exeAct(0,0,0.0,0.0,1.0,0);
+			break;
+		case GLUT_KEY_LEFT: 
+			break;
+		case GLUT_KEY_RIGHT:  
+			break;
+	}
+}
+
+
+
+void main(int argn, char **argv){
+	int i;
+	//printf("Press Esc to quit ...\n");
+	int connected = startclient("127.0.0.1", 1238,"Sphere","VIEWER","CMan0023.cfg",true);
+	#if defined(_WIN32)
+		Sleep(100);
+	#else
+		sleep(2);
+	#endif
+	printf("client is %s\n", (connected)?"connected":"not connected");
+
+	glutInit (&argn,argv);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA| GLUT_DEPTH);
+	glutInitWindowPosition(300,100);
+	glutInitWindowSize(512, 512);
+	gluthandl = glutCreateWindow("GlutHALCA");
+	glutDisplayFunc(display);
+	glutReshapeFunc(reshape);
+	glutMouseFunc(mouse);
+	initHALCA();
+	glutIdleFunc(idle);
+	glutSpecialFunc(processSpecialKeys);
+	glutMainLoop();
+}

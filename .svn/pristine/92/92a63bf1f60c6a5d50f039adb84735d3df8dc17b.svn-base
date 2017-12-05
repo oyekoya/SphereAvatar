@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glutavatar", "glutAvatar.vcproj", "{002EC0E9-91C4-47D1-A144-3DE9ABBFC260}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glutSphere", "glutSphere.vcproj", "{7FD8A41B-B6EC-461B-B745-36BB925B6D06}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sphereView", "sphereView.vcproj", "{7AD657A0-8256-4F96-860F-2894337A45A5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{002EC0E9-91C4-47D1-A144-3DE9ABBFC260}.Debug|Win32.ActiveCfg = Debug|Win32
+		{002EC0E9-91C4-47D1-A144-3DE9ABBFC260}.Debug|Win32.Build.0 = Debug|Win32
+		{002EC0E9-91C4-47D1-A144-3DE9ABBFC260}.Release|Win32.ActiveCfg = Release|Win32
+		{002EC0E9-91C4-47D1-A144-3DE9ABBFC260}.Release|Win32.Build.0 = Release|Win32
+		{7FD8A41B-B6EC-461B-B745-36BB925B6D06}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7FD8A41B-B6EC-461B-B745-36BB925B6D06}.Debug|Win32.Build.0 = Debug|Win32
+		{7FD8A41B-B6EC-461B-B745-36BB925B6D06}.Release|Win32.ActiveCfg = Release|Win32
+		{7FD8A41B-B6EC-461B-B745-36BB925B6D06}.Release|Win32.Build.0 = Release|Win32
+		{7AD657A0-8256-4F96-860F-2894337A45A5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7AD657A0-8256-4F96-860F-2894337A45A5}.Debug|Win32.Build.0 = Debug|Win32
+		{7AD657A0-8256-4F96-860F-2894337A45A5}.Release|Win32.ActiveCfg = Release|Win32
+		{7AD657A0-8256-4F96-860F-2894337A45A5}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
